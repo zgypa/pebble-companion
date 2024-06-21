@@ -1,0 +1,42 @@
+#!/usr/bin/env python
+import bluetooth
+import time
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+def find_pebble():
+    nearby_devices = bluetooth.discover_devices(duration=8, lookup_names=True, flush_cache=True, lookup_class=False)
+    for addr, name in nearby_devices:
+        logging.debug(f"{name} {addr}")
+        if 'Pebble' in name:
+            logging.info(f"Found Pebble {name} with address {addr}")
+            return addr
+    return None
+
+def set_pebble_time(pebble_addr):
+    # Connect to Pebble
+    port = 1  # Standard RFCOMM port
+    sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+    sock.connect((pebble_addr, port))
+
+    # Get current time
+    current_time = int(time.time())
+    
+    # Build the command to set the time
+    command = bytearray([0x00, 0x42, 0x10, 0x00])  # Command header for setting time
+    command += current_time.to_bytes(4, byteorder='little')
+    
+    # Send command to Pebble
+    sock.send(command)
+    
+    # Close the connection
+    sock.close()
+
+if __name__ == "__main__":
+    pebble_addr = find_pebble()
+    # logging.info(f"Found Pebble {name} with address {addr}")
+    if pebble_addr:
+        set_pebble_time(pebble_addr)
+        logging.info(f"Time set on Pebble with address {pebble_addr}")
+    else:
+        logging.error("Pebble watch not found")
